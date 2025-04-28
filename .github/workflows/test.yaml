@@ -15,12 +15,15 @@ jobs:
 
     defaults:
       run:
-        working-directory: .
+        working-directory: original_product_second/backend
     steps: 
       - name: Checkout code 
         uses: actions/checkout@v3
 
       - name: start github actions!
         run: echo start github actions
+      
+      - name: current dir files
+        run: ls -a
     
 
