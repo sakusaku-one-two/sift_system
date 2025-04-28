@@ -9,9 +9,6 @@ on:
       - main
       
 
-permissions:
-  id_token: write
-
 env: 
   AWS_REGION: ap-norhteast-1
   ECS_CLUSTER: backendsCluster
@@ -25,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        workign-directory: original_product_second/backend
+        working-directory: original_product_second/backend
         
     steps:
       - uses: actions/checkout@v4
