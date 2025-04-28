@@ -1,0 +1,53 @@
+
+
+services:
+
+  
+
+
+  redis:
+    container_name: app_redis
+    image: redis:latest
+    env_file:
+      - .env.redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      #- ./redis/redis.conf:/usr/local/etc/redis/redis.conf #カスタム設定ファイルのマウント
+      - ./redis:/usr/local/etc/redis
+    command: ["redis-server","/usr/local/etc/redis/redis.conf"] #comamnd: 起動コマンド
+    restart: unless-stopped #restrat: コンテナの再起動ポリシー
+    networks:
+      - app-network #healthcheck: コンテナの正常確認
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s 
+      timeout: 3s
+      retries: 3
+
+  #redis-cluster:
+    #image: redis:latest
+    #container_name: app-redis-cluster
+    #ports:
+    #  - "7000-7005:7000-7005" #クラスターノード用のポート範囲
+    #volumes:
+    #  - ./redis/cluster:/data
+    #command: ["redis-server", "/usr/local/etc/redis/redis-cluster.conf"]
+    #networks:
+    #  - app-network
+
+
+
+
+
+
+
+volumes:
+  redis_data: #redisのネットワークの設定
+    name: app-redis-data
+
+networks:
+  app-network:
+    name: app-network
+    driver: bridge #driver：ネットワークの種類

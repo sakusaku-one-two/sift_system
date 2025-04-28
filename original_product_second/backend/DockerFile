@@ -1,0 +1,88 @@
+# ビルドステージ
+FROM golang:1.20-alpine AS builder
+
+# セキュリティ対策として非rootユーザーを作成
+RUN adduser -D -g '' appuser
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# 依存関係ファイルをコピー
+COPY go.mod go.sum* ./
+# go.mod: Goの依存関係を管理するファイル
+# go.sum: 依存関係の整合性を確認するためのチェックサムファイル
+# *: go.sumファイルが存在しない場合もエラーにならないようにするためのワイルドカード
+
+# 依存関係をダウンロード
+RUN go mod download
+# go mod download: 依存モジュールをダウンロードするコマンド
+
+# ソースコードをコピー
+COPY . .
+# .: カレントディレクトリのすべてのファイル
+
+# セキュリティスキャン実行
+RUN go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    gosec ./...
+# securego/gosec: Goのセキュリティ静的解析ツール
+# ./...: すべてのパッケージをスキャン
+
+# アプリケーションをビルド
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o main_executable ./main.go
+# CGO_ENABLED=0: Cコンパイラを使用しないビルドを指定（軽量なバイナリになる）
+# GOOS=linux: Linux向けにビルド
+# GOARCH=amd64: 64ビットアーキテクチャ向けにビルド
+# -ldflags="-s -w": バイナリサイズを縮小するためのリンカフラグ
+# -s: シンボルテーブル情報を省略
+# -w: DWARFデバッグ情報を省略
+# -o app: 出力ファイル名
+# ./cmd/api: ビルド対象のパス
+
+# 実行ステージ
+FROM alpine:3.18
+# alpine: 軽量なLinuxディストリビューション
+# 3.18: バージョン指定（セキュリティ対策）
+
+# タイムゾーンを設定
+RUN apk --no-cache add tzdata && \
+    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
+    echo "Asia/Tokyo" > /etc/timezone && \
+    apk del tzdata
+# tzdata: タイムゾーンデータパッケージ
+# --no-cache: キャッシュを使用しない（イメージサイズ削減）
+# Asia/Tokyo: 日本のタイムゾーン
+
+# セキュリティ対策
+RUN apk --no-cache add ca-certificates && \
+    adduser -D -g '' appuser
+# ca-certificates: SSL証明書
+# adduser: 非rootユーザーを作成
+
+# ビルドステージからのバイナリをコピー
+COPY --from=builder /app/app /usr/local/bin/
+# --from=builder: ビルドステージから
+# /app/app: ソースパス
+# /usr/local/bin/: 宛先パス
+
+# 非rootユーザーに切り替え
+USER appuser
+
+# ヘルスチェック設定
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -q --spider http://localhost:8080/health || exit 1
+# --interval=30s: 30秒ごとにチェック
+# --timeout=5s: タイムアウトは5秒
+# --start-period=5s: 起動後5秒後からチェック開始
+# --retries=3: 3回失敗したら異常と判断
+# wget -q --spider: ファイルをダウンロードせずに接続だけチェック
+
+# コンテナ実行時の作業ディレクトリ
+WORKDIR /home/appuser
+
+# アプリが使用するポートを公開
+EXPOSE 8080
+# 8080: APIサーバーのポート
+
+# アプリケーションを起動
+CMD ["app"]
+# app: 実行するバイナリ名

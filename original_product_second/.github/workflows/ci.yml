@@ -1,0 +1,77 @@
+name: CI/CD Pipeline  # ワークフローの名前を定義
+
+on:  # どのイベントでワークフローを実行するかを定義
+  push:  # pushイベント時に実行
+    branches: [ main ]  # mainブランチへのpushの場合に実行
+  pull_request:  # プルリクエスト時に実行
+    branches: [ main ]  # mainブランチへのプルリクエストの場合に実行
+  workflow_dispatch:  # 手動実行を可能にする
+
+jobs:  # ワークフローのジョブを定義
+  test:  # テストジョブ
+    runs-on: ubuntu-latest  # 実行環境としてUbuntu最新版を使用
+    
+    steps:  # ジョブのステップを定義
+    - uses: actions/checkout@v3  # リポジトリをチェックアウト
+      # uses: アクションを使用する
+      # actions/checkout: GitHubが提供する公式アクション
+      # v3: バージョン3を使用
+    
+    - name: Set up Python  # Pythonをセットアップ
+      uses: actions/setup-python@v4  # Python環境をセットアップするアクション
+      with:  # アクションのパラメータを指定
+        python-version: '3.10'  # Python 3.10を使用
+    
+    - name: Install dependencies  # 依存関係のインストール
+      run: |  # 実行するコマンドを定義
+        python -m pip install --upgrade pip  # pipを最新版にアップグレード
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi  # requirements.txtがあれば依存関係をインストール
+        pip install pytest pytest-cov flake8  # テストとリントツールをインストール
+    
+    - name: Lint with flake8  # flake8でリント
+      run: |  # 実行するコマンドを定義
+        # Pythonの構文エラーやundefined namesをチェック
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # すべての警告を表示（ただし、一部は無視）
+        flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Test with pytest  # pytestでテスト
+      run: |  # 実行するコマンドを定義
+        pytest --cov=./ --cov-report=xml
+    
+    - name: Upload coverage to Codecov  # カバレッジレポートをCodecovにアップロード
+      uses: codecov/codecov-action@v3  # Codecovのアクション
+      with:  # アクションのパラメータを指定
+        file: ./coverage.xml  # カバレッジレポートのファイル
+        fail_ci_if_error: true  # エラー時にCIを失敗させる
+        
+  deploy:  # デプロイジョブ
+    needs: test  # testジョブが成功した後に実行
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'  # mainブランチへのpushの場合のみ実行
+    runs-on: ubuntu-latest  # 実行環境としてUbuntu最新版を使用
+    
+    steps:  # ジョブのステップを定義
+    - uses: actions/checkout@v3  # リポジトリをチェックアウト
+    
+    - name: Set up Python  # Pythonをセットアップ
+      uses: actions/setup-python@v4  # Python環境をセットアップするアクション
+      with:  # アクションのパラメータを指定
+        python-version: '3.10'  # Python 3.10を使用
+    
+    - name: Install dependencies  # 依存関係のインストール
+      run: |  # 実行するコマンドを定義
+        python -m pip install --upgrade pip  # pipを最新版にアップグレード
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi  # requirements.txtがあれば依存関係をインストール
+    
+    - name: Build and package  # ビルドとパッケージング
+      run: |  # 実行するコマンドを定義
+        # ビルドコマンドをここに記述
+        echo "Building project..."
+    
+    - name: Deploy  # デプロイ
+      run: |  # 実行するコマンドを定義
+        # デプロイコマンドをここに記述
+        echo "Deploying to production..."
+      env:  # 環境変数を定義
+        # デプロイに必要な環境変数を設定
+        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}  # シークレットを使用 

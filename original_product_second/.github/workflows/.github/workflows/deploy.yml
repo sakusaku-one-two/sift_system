@@ -1,0 +1,54 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+      - feature/push_images_to_ecr
+
+
+
+permissons:
+sakurai
+
+env:
+  AWS_REGION: ap-northeast-1
+  ECS_CLUSTER:
+  ECS_SERVICE:
+  ECR_REPOSITORY:
+  ECS_TASK_DEFINITION_API:
+
+
+jobs:
+  deploy:
+    name: Deploy app to AWS Farget
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory:original_product_secound/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests and Build an Image
+        run: docker image build -t temp_api_image:latest
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{env.AWS_REGION}}
+          role-to-assume:${{secrets.AWS_ROLE_TO_ASSUME}}
+
+      - name: Login to AWS ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Push the image to Amazon ECR
+       env: 
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker image tag temp_api_image:latest $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        docker image push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+
+
+

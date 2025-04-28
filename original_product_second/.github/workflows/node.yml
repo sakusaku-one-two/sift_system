@@ -1,0 +1,75 @@
+name: Node.js CI/CD  # ワークフローの名前を定義
+
+on:  # どのイベントでワークフローを実行するかを定義
+  push:  # pushイベント時に実行
+    branches: [ main ]  # mainブランチへのpushの場合に実行
+  pull_request:  # プルリクエスト時に実行
+    branches: [ main ]  # mainブランチへのプルリクエストの場合に実行
+  workflow_dispatch:  # 手動実行を可能にする
+
+jobs:  # ワークフローのジョブを定義
+  build:  # ビルドジョブ
+    runs-on: ubuntu-latest  # 実行環境としてUbuntu最新版を使用
+    
+    strategy:  # 複数の環境でのテスト戦略
+      matrix:  # マトリックス戦略を定義
+        node-version: [16.x, 18.x]  # 異なるNode.jsバージョンでテスト
+    
+    steps:  # ジョブのステップを定義
+    - uses: actions/checkout@v3  # リポジトリをチェックアウト
+      # uses: アクションを使用する
+      # actions/checkout: GitHubが提供する公式アクション
+      # v3: バージョン3を使用
+    
+    - name: Use Node.js ${{ matrix.node-version }}  # Node.jsをセットアップ
+      uses: actions/setup-node@v3  # Node.js環境をセットアップするアクション
+      with:  # アクションのパラメータを指定
+        node-version: ${{ matrix.node-version }}  # マトリックスで定義したNode.jsバージョンを使用
+        cache: 'npm'  # npmキャッシュを使用
+    
+    - name: Install dependencies  # 依存関係のインストール
+      run: npm ci  # クリーンインストール
+    
+    - name: Run linting  # リント実行
+      run: npm run lint --if-present  # lint:スクリプトがあれば実行
+    
+    - name: Run tests  # テスト実行
+      run: npm test  # テストを実行
+    
+    - name: Build  # ビルド実行
+      run: npm run build --if-present  # build:スクリプトがあれば実行
+    
+    - name: Upload build artifacts  # ビルド成果物をアップロード
+      uses: actions/upload-artifact@v3  # 成果物アップロードアクション
+      with:  # アクションのパラメータを指定
+        name: build-artifacts  # 成果物の名前
+        path: |  # アップロードするファイルパス
+          dist
+          build
+        retention-days: 7  # 保持日数
+  
+  deploy:  # デプロイジョブ
+    needs: build  # buildジョブが成功した後に実行
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'  # mainブランチへのpushの場合のみ実行
+    runs-on: ubuntu-latest  # 実行環境としてUbuntu最新版を使用
+    
+    steps:  # ジョブのステップを定義
+    - uses: actions/checkout@v3  # リポジトリをチェックアウト
+    
+    - name: Download build artifacts  # ビルド成果物をダウンロード
+      uses: actions/download-artifact@v3  # 成果物ダウンロードアクション
+      with:  # アクションのパラメータを指定
+        name: build-artifacts  # 成果物の名前
+    
+    - name: Setup Node.js  # Node.jsをセットアップ
+      uses: actions/setup-node@v3  # Node.js環境をセットアップするアクション
+      with:  # アクションのパラメータを指定
+        node-version: '18.x'  # Node.js 18.xを使用
+    
+    - name: Deploy to production  # 本番環境にデプロイ
+      run: |  # 実行するコマンドを定義
+        # デプロイスクリプトをここに記述
+        echo "Deploying to production..."
+      env:  # 環境変数を定義
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}  # デプロイキー
+        APP_ENV: production  # 環境名 
