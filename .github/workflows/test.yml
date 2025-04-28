@@ -1,0 +1,23 @@
+
+
+
+name: test_githubactions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  id_sample:
+    name: sample_github_actions
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory:original_product_secound_backend
+
+    name: start github actions!
+    run: echo starting github actions!
+    
+
