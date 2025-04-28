@@ -15,9 +15,10 @@ jobs:
 
     defaults:
       run:
-        working-directory:original_product_secound_backend
+        working-directory: original_product_secound_backend
+    steps: 
 
-    name: start github actions!
-    run: echo starting github actions!
+      - name: start github actions!
+        run: echo starting github actions!
     
 
