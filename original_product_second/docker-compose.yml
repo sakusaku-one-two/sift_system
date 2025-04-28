@@ -2,7 +2,25 @@
 
 services:
 
-  
+  go_api_server:
+    container_name: go_api
+    build: 
+      context: ./backend
+      dockerfile: DockerFile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.redis
+      - .env.db
+      - .env.api
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - my_database
+    restart: unless-stopped
+
+
 
 
   redis:
@@ -36,6 +54,13 @@ services:
     #command: ["redis-server", "/usr/local/etc/redis/redis-cluster.conf"]
     #networks:
     #  - app-network
+
+  my_database:
+    container_name: my_database
+    image: postgresql:latest
+
+
+
 
 
 
