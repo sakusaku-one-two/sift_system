@@ -27,11 +27,11 @@ jobs:
       run:
         workign-directory: original_product_second/backend
         
-  steps:
-    - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: sample exec
-      run: echo sample!
+      - name: sample exec
+        run: echo sample!
 
 # on:
 #   push:
