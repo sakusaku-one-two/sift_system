@@ -6,7 +6,7 @@ name: Backend images To AWS ECR
 on:
   push:
     branches:
-      - main:
+      - main
       
 
 permissions:
