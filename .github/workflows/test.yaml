@@ -19,6 +19,6 @@ jobs:
     steps: 
 
       - name: start github actions!
-        run: ls -a
+        run: echo start github actions
     
 
