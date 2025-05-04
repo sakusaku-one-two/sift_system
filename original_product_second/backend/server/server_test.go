@@ -1,13 +1,11 @@
 package server
 
 import (
-	"testing"
 	"backend/util"
-	"reflect"
 	"fmt"
+	"reflect"
+	"testing"
 )
-
-
 
 func Test_Is_serverType(t *testing.T) {
 	e := CreateServer()
